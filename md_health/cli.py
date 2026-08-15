@@ -75,10 +75,13 @@ def main(argv: list[str] | None = None) -> int:
     all_links: list[Link] = [link for pf in file_index.values() for link in pf.links]
 
     anchor_cache: dict[Path, set[str]] = {}
-    for link in all_links:
-        checker.check_local_link(link, root, file_index, anchor_cache)
+    with reporter.link_progress(console, len(all_links)) as on_start:
+        for link in all_links:
+            if link.kind not in (parser.LinkKind.REMOTE_LINK, parser.LinkKind.REMOTE_IMAGE):
+                on_start(link)
+            checker.check_local_link(link, root, file_index, anchor_cache)
 
-    asyncio.run(checker.check_remote_links(all_links))
+        asyncio.run(checker.check_remote_links(all_links, on_start=on_start))
 
     reporter.report(
         console,

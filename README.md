@@ -18,6 +18,11 @@ md-health            # scan the current directory
 md-health path/to/docs
 ```
 
+While links are being checked, a single line is updated in place showing the
+link currently being checked along with its position and the total link
+count (e.g. `Checking [5/125] [Example #5](examples/example-005.md)`). It's
+suppressed when output isn't a terminal (e.g. piped or redirected).
+
 ## What gets checked
 
 - Regular links `[text](url)` and reference-style links (`[text][ref]`, including

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import re
 from pathlib import Path
+from typing import Callable
 from urllib.parse import unquote
 
 import httpx
@@ -84,9 +85,14 @@ def check_local_link(
 
 
 async def _check_one_remote(
-    client: httpx.AsyncClient, sem: asyncio.Semaphore, link: Link
+    client: httpx.AsyncClient,
+    sem: asyncio.Semaphore,
+    link: Link,
+    on_start: Callable[[Link], None] | None,
 ) -> None:
     async with sem:
+        if on_start is not None:
+            on_start(link)
         url = link.path_part
         try:
             resp = await client.head(url)
@@ -114,7 +120,9 @@ async def _check_one_remote(
             link.status, link.reason = Status.BROKEN, f"HTTP {code}"
 
 
-async def check_remote_links(links: list[Link]) -> None:
+async def check_remote_links(
+    links: list[Link], on_start: Callable[[Link], None] | None = None
+) -> None:
     remote = [
         link for link in links if link.kind in (LinkKind.REMOTE_LINK, LinkKind.REMOTE_IMAGE)
     ]
@@ -136,4 +144,6 @@ async def check_remote_links(links: list[Link]) -> None:
         headers=headers,
         verify=True,
     ) as client:
-        await asyncio.gather(*(_check_one_remote(client, sem, link) for link in remote))
+        await asyncio.gather(
+            *(_check_one_remote(client, sem, link, on_start) for link in remote)
+        )
