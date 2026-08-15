@@ -33,11 +33,22 @@ def make_console() -> Console:
     return Console()
 
 
-def _summary_section(links: list[Link]) -> Table:
-    counts = Counter(link.status for link in links)
-    table = Table(title="md-health summary", box=None, show_header=False)
+def _titled_table(title: str, **kwargs) -> Table:
+    """A borderless, header-less table with a left-aligned section title."""
+    return Table(title=title, box=None, show_header=False, title_justify="left", **kwargs)
+
+
+def _section(title: str) -> Table:
+    """A titled section with the shared right-aligned-label/value two-column shape."""
+    table = _titled_table(f" {title}")
     table.add_column(justify="right", style="bold")
     table.add_column()
+    return table
+
+
+def _summary_section(links: list[Link]) -> Table:
+    counts = Counter(link.status for link in links)
+    table = _section("md-health summary")
     table.add_row("Total links/images:", str(len(links)))
     for status in (Status.GOOD, Status.BROKEN, Status.UNKNOWN, Status.UNSUPPORTED):
         style = STATUS_STYLE[status]
@@ -47,13 +58,11 @@ def _summary_section(links: list[Link]) -> Table:
     return table
 
 
-def _breakdown_table(links: list[Link]) -> Table:
-    table = Table(title="Breakdown by type", box=None)
-    table.add_column("Type")
-    table.add_column("Count", justify="right")
+def _breakdown_section(links: list[Link]) -> Table:
+    table = _section("Breakdown by type")
     kind_counts = Counter(link.kind for link in links)
     for kind, label in KIND_LABELS.items():
-        table.add_row(label, str(kind_counts.get(kind, 0)))
+        table.add_row(f"{label}:", str(kind_counts.get(kind, 0)))
     return table
 
 
@@ -91,7 +100,7 @@ def _issue_block(link: Link, root: Path) -> RenderableType:
 
 
 def _issues_section(links: list[Link], root: Path) -> Table:
-    table = Table(title="Issues found", box=None, show_header=False, padding=0)
+    table = _titled_table("Issues found", padding=0)
     table.add_column(overflow="fold")
 
     non_good = [link for link in links if link.status != Status.GOOD]
@@ -114,8 +123,11 @@ def report(
         return
 
     console.print(_summary_section(links))
-    console.print(_breakdown_table(links))
+    console.line()
+    console.print(_breakdown_section(links))
+    console.line()
     _skipped_dirs_section(console, skipped_dirs)
+    console.line()
 
     non_good = [link for link in links if link.status != Status.GOOD]
     if non_good:
