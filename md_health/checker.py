@@ -36,9 +36,9 @@ def github_slug(text: str, seen: dict[str, int]) -> str:
     return slug
 
 
-def build_anchor_set(headings: list[str]) -> set[str]:
+def build_anchor_set(headings: list[str], raw_anchors: list[str]) -> set[str]:
     seen: dict[str, int] = {}
-    return {github_slug(h, seen) for h in headings}
+    return {github_slug(h, seen) for h in headings} | set(raw_anchors)
 
 
 def check_local_link(
@@ -71,7 +71,7 @@ def check_local_link(
         anchors = anchor_cache.get(resolved)
         if anchors is None:
             pf = file_index.get(resolved) or parse_file(resolved)
-            anchors = build_anchor_set(pf.headings)
+            anchors = build_anchor_set(pf.headings, pf.raw_anchors)
             anchor_cache[resolved] = anchors
         if link.fragment not in anchors:
             link.status = Status.BROKEN

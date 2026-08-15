@@ -29,7 +29,10 @@ md-health path/to/docs
   to the Markdown file containing the link). If an anchor is present, a
   matching heading must exist in the target file (ATX `#` and Setext
   `===`/`---` headings are both supported, normalized using GitHub-style
-  anchor slugs).
+  anchor slugs). Explicit HTML anchors are also recognized as valid fragment
+  targets: `<a name="...">`, `<a id="...">`, and any element's `id="..."`
+  attribute (e.g. `<h2 id="...">`, `<div id="...">`), matched verbatim
+  (case-sensitive, not slugified).
 - **Remote `http://`/`https://` links**: checked with a `HEAD` request
   (falling back to `GET` on `405`), following up to 3 redirects, with a 1
   second timeout and 3 concurrent requests. A final 2xx/3xx status is good; a

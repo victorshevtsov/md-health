@@ -34,6 +34,9 @@ _LINK_RE = re.compile(
     r')'
 )
 _CODE_SPAN_RE = re.compile(r"(`+)(?:(?!\1).)+?\1", re.DOTALL)
+_HTML_ANCHOR_ATTR_RE = re.compile(
+    r'<[a-zA-Z][\w-]*\b[^>]*?\b(?:id|name)\s*=\s*(?:"([^"]+)"|\'([^\']+)\')',
+)
 
 
 class LinkKind(str, Enum):
@@ -73,6 +76,7 @@ class ParsedFile:
     path: Path
     links: list[Link] = field(default_factory=list)
     headings: list[str] = field(default_factory=list)
+    raw_anchors: list[str] = field(default_factory=list)
     read_error: str | None = None
 
 
@@ -178,16 +182,26 @@ def parse_file(path: Path) -> ParsedFile:
     used_labels: set[str] = set()
 
     for i, tok in enumerate(tokens):
-        if tok.type != "inline" or tok.map is None:
+        if tok.type == "html_block":
+            for m in _HTML_ANCHOR_ATTR_RE.finditer(tok.content):
+                pf.raw_anchors.append(m.group(1) or m.group(2))
             continue
-        prev = tokens[i - 1] if i > 0 else None
-        if prev is not None and prev.type == "heading_open":
-            pf.headings.append(_heading_plain_text(tok))
+
+        if tok.type != "inline" or tok.map is None:
             continue
 
         start_line, end_line = tok.map
         block_text = "\n".join(lines[start_line:end_line])
         masked = _mask_code_spans(block_text)
+
+        for m in _HTML_ANCHOR_ATTR_RE.finditer(masked):
+            pf.raw_anchors.append(m.group(1) or m.group(2))
+
+        prev = tokens[i - 1] if i > 0 else None
+        if prev is not None and prev.type == "heading_open":
+            pf.headings.append(_heading_plain_text(tok))
+            continue
+
         for m in _LINK_RE.finditer(masked):
             line_offset = masked.count("\n", 0, m.start())
             line_no = start_line + line_offset + 1
