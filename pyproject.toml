@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "md-health"
+version = "0.1.0"
+description = "Recursively check markdown files for broken local/remote links, images, and anchors."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "markdown-it-py>=3.0.0,<4",
+    "rich>=13.7.1,<14",
+    "httpx>=0.27,<1",
+]
+
+[project.scripts]
+md-health = "md_health.cli:cli_main"
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-asyncio>=0.23"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["md_health"]
